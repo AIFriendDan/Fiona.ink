@@ -313,9 +313,9 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* Status Update */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-gray-800">
-                    <span className="text-sm text-gray-400">Update Status:</span>
-                    <div className="flex gap-2">
+                  <div className="flex items-center gap-3 pt-4 border-t border-gray-800 flex-wrap">
+                    <span className="text-sm text-gray-400">Actions:</span>
+                    <div className="flex gap-2 flex-wrap">
                       {booking.status !== 'confirmed' && (
                         <Button
                           onClick={() => updateBookingStatus(booking.id, 'confirmed')}
@@ -341,6 +341,15 @@ const AdminDashboard = () => {
                           className="bg-red-500/20 hover:bg-red-500/30 text-red-500 border border-red-500/50"
                         >
                           Cancel
+                        </Button>
+                      )}
+                      {booking.status === 'confirmed' && booking.preferred_date && (
+                        <Button
+                          onClick={() => sendReminder(booking.id, booking.name)}
+                          size="sm"
+                          className="bg-electric-cyan/20 hover:bg-electric-cyan/30 text-electric-cyan border border-electric-cyan/50"
+                        >
+                          📧 Send Reminder
                         </Button>
                       )}
                     </div>

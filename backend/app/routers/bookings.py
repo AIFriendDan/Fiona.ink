@@ -131,6 +131,24 @@ async def update_booking_status(booking_id: str, status_update: BookingStatusUpd
                 logger.error(f"Error sending confirmation email: {str(email_error)}")
                 # Don't fail the request if email fails
         
+        # Send cancellation email if status changed to cancelled
+        elif status_update.status == "cancelled":
+            try:
+                from app.utils.email import send_booking_cancellation_email
+                email_sent = send_booking_cancellation_email(
+                    client_name=updated_booking["name"],
+                    client_email=updated_booking["email"],
+                    tattoo_idea=updated_booking["tattoo_idea"],
+                    reason="Your booking has been cancelled by the studio."
+                )
+                if email_sent:
+                    logger.info(f"Cancellation email sent to {updated_booking['email']}")
+                else:
+                    logger.warning(f"Failed to send cancellation email to {updated_booking['email']}")
+            except Exception as email_error:
+                logger.error(f"Error sending cancellation email: {str(email_error)}")
+                # Don't fail the request if email fails
+        
         logger.info(f"Booking {booking_id} status updated to {status_update.status}")
         
         return BookingResponse(**updated_booking)
@@ -195,3 +213,66 @@ async def get_booking_stats():
     except Exception as e:
         logger.error(f"Error fetching booking stats: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch stats: {str(e)}")
+
+@router.post("/bookings/{booking_id}/send-reminder")
+async def send_reminder(booking_id: str):
+    """
+    Send appointment reminder email for a specific booking
+    """
+    try:
+        booking_model = BookingModel(db)
+        
+        # Check if booking exists
+        booking = await booking_model.get_booking_by_id(booking_id)
+        if not booking:
+            raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Only send reminders for confirmed bookings
+        if booking["status"] != "confirmed":
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Cannot send reminder for booking with status: {booking['status']}. Only confirmed bookings can receive reminders."
+            )
+        
+        # Check if preferred_date exists
+        if not booking.get("preferred_date"):
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot send reminder: No appointment date set for this booking"
+            )
+        
+        # Send reminder email
+        try:
+            from app.utils.email import send_appointment_reminder_email
+            email_sent = send_appointment_reminder_email(
+                client_name=booking["name"],
+                client_email=booking["email"],
+                appointment_date=booking["preferred_date"],
+                tattoo_idea=booking["tattoo_idea"],
+                body_placement=booking.get("body_placement")
+            )
+            
+            if email_sent:
+                logger.info(f"Reminder email sent to {booking['email']} for booking {booking_id}")
+                return {
+                    "status": "success",
+                    "message": f"Reminder email sent to {booking['email']}"
+                }
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Failed to send reminder email. Check SMTP configuration."
+                )
+                
+        except Exception as email_error:
+            logger.error(f"Error sending reminder email: {str(email_error)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to send reminder email: {str(email_error)}"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in send_reminder for booking {booking_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send reminder: {str(e)}")
