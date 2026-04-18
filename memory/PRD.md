@@ -106,7 +106,17 @@ Build an edgy website for Fiona, a tattoo artist, with placeholders for pictures
    - Hover effects with border color change
    - CTA section for consultation booking
 
-6. **Contact.jsx**
+6. **InstagramFeed.jsx** ⭐ NEW
+   - Instagram-style feed section
+   - 3-column responsive grid layout
+   - 9 mock Instagram posts with captions, likes, comments
+   - Hover overlay showing post stats and captions
+   - "Follow @fiona.ink" CTA button with gradient animation
+   - Link to view more posts on Instagram
+   - Admin note indicating mock data status
+   - Ready for real Instagram API integration
+
+7. **Contact.jsx**
    - Full booking form with validation
    - Contact information sidebar
    - Studio hours display
@@ -114,7 +124,7 @@ Build an edgy website for Fiona, a tattoo artist, with placeholders for pictures
    - FAQ accordion section
    - Toast notification on form submission
 
-7. **Footer.jsx**
+8. **Footer.jsx**
    - Brand information
    - Quick navigation links
    - Contact details
@@ -186,7 +196,15 @@ Build an edgy website for Fiona, a tattoo artist, with placeholders for pictures
    - Send confirmation emails
    - Admin notification system
 
-3. **Content Management**
+3. **Instagram API Integration** 🔄 (Ready for credentials)
+   - Meta App setup completed (pending credentials)
+   - Backend OAuth flow ready
+   - Access token management
+   - Auto-refresh mechanism
+   - Replace mock data with real posts
+   - See: `/app/memory/INSTAGRAM_INTEGRATION_GUIDE.md`
+
+4. **Content Management**
    - Upload and manage portfolio images
    - Edit services and pricing
    - Update about/bio information
