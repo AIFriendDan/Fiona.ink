@@ -111,6 +111,26 @@ async def update_booking_status(booking_id: str, status_update: BookingStatusUpd
         # Fetch updated booking
         updated_booking = await booking_model.get_booking_by_id(booking_id)
         
+        # Send confirmation email if status changed to confirmed
+        if status_update.status == "confirmed":
+            try:
+                from app.utils.email import send_booking_confirmation_email
+                email_sent = send_booking_confirmation_email(
+                    client_name=updated_booking["name"],
+                    client_email=updated_booking["email"],
+                    tattoo_idea=updated_booking["tattoo_idea"],
+                    body_placement=updated_booking.get("body_placement"),
+                    size=updated_booking.get("size"),
+                    preferred_date=updated_booking.get("preferred_date")
+                )
+                if email_sent:
+                    logger.info(f"Confirmation email sent to {updated_booking['email']}")
+                else:
+                    logger.warning(f"Failed to send confirmation email to {updated_booking['email']}")
+            except Exception as email_error:
+                logger.error(f"Error sending confirmation email: {str(email_error)}")
+                # Don't fail the request if email fails
+        
         logger.info(f"Booking {booking_id} status updated to {status_update.status}")
         
         return BookingResponse(**updated_booking)

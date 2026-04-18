@@ -239,6 +239,7 @@ const AdminDashboard = () => {
             <CardContent className="py-12 text-center">
               <AlertCircle className="mx-auto mb-4 text-gray-500" size={48} />
               <p className="text-gray-400 text-lg">No bookings found</p>
+              <p className="text-gray-600 text-sm mt-2">New booking requests will appear here</p>
             </CardContent>
           </Card>
         ) : (
