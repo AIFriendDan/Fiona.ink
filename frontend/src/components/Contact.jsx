@@ -12,6 +12,9 @@ import {
   AccordionTrigger,
 } from './ui/accordion';
 import { toast } from 'sonner';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -23,6 +26,8 @@ const Contact = () => {
     bodyPlacement: '',
     size: '',
   });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -31,26 +36,50 @@ const Contact = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    // Mock submission - will be replaced with backend integration
-    console.log('Form submitted:', formData);
-    
-    toast.success("Booking Request Received!", {
-      description: "I'll get back to you within 24-48 hours to confirm your consultation.",
-    });
+    try {
+      // Submit to backend API
+      const response = await axios.post(
+        `${BACKEND_URL}/api/bookings`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-    // Reset form
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      tattooIdea: '',
-      preferredDate: '',
-      bodyPlacement: '',
-      size: '',
-    });
+      console.log('Booking created:', response.data);
+      
+      toast.success("Booking Request Received!", {
+        description: "I'll get back to you within 24-48 hours to confirm your consultation.",
+      });
+
+      // Reset form
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        tattooIdea: '',
+        preferredDate: '',
+        bodyPlacement: '',
+        size: '',
+      });
+      
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      
+      const errorMessage = error.response?.data?.detail || 'Something went wrong. Please try again.';
+      
+      toast.error("Booking Failed", {
+        description: errorMessage,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -169,9 +198,10 @@ const Contact = () => {
 
               <Button 
                 type="submit" 
+                disabled={isSubmitting}
                 className="w-full bg-electric-purple hover:bg-electric-purple/90 text-white text-base py-6 shadow-lg shadow-electric-purple/30 hover:shadow-electric-purple/50"
               >
-                Submit Booking Request
+                {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
               </Button>
 
               <p className="text-sm text-gray-500 text-center">
