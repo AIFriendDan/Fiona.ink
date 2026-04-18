@@ -72,7 +72,9 @@ async def get_status_checks():
 
 # Import and include booking router
 from app.routers.bookings import router as bookings_router
+from app.routers.auth import router as auth_router
 api_router.include_router(bookings_router, tags=["bookings"])
+api_router.include_router(auth_router, prefix="/auth", tags=["authentication"])
 
 # Include the router in the main app
 app.include_router(api_router)
@@ -91,6 +93,58 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Admin seeding function
+async def seed_admin():
+    """Seed admin user on startup"""
+    from app.utils.auth import hash_password, verify_password
+    
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+    admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
+    
+    existing = await db.users.find_one({"email": admin_email})
+    
+    if existing is None:
+        hashed = hash_password(admin_password)
+        await db.users.insert_one({
+            "email": admin_email,
+            "password_hash": hashed,
+            "name": "Admin",
+            "role": "admin",
+            "created_at": datetime.now(timezone.utc)
+        })
+        logger.info(f"Admin user created: {admin_email}")
+    elif not verify_password(admin_password, existing["password_hash"]):
+        hashed = hash_password(admin_password)
+        await db.users.update_one(
+            {"email": admin_email},
+            {"$set": {"password_hash": hashed}}
+        )
+        logger.info(f"Admin password updated for: {admin_email}")
+    
+    # Write credentials to test_credentials.md
+    try:
+        with open("/app/memory/test_credentials.md", "w") as f:
+            f.write("# Test Credentials for Fiona.Ink Website\n\n")
+            f.write("## Admin User\n")
+            f.write(f"- Email: {admin_email}\n")
+            f.write(f"- Password: {admin_password}\n")
+            f.write("- Role: admin\n\n")
+            f.write("## Auth Endpoints\n")
+            f.write("- POST /api/auth/login\n")
+            f.write("- POST /api/auth/logout\n")
+            f.write("- GET /api/auth/me\n")
+            f.write("- POST /api/auth/refresh\n")
+    except Exception as e:
+        logger.error(f"Error writing test credentials: {str(e)}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Run startup tasks"""
+    await seed_admin()
+    # Create indexes
+    await db.users.create_index("email", unique=True)
+    logger.info("Database indexes created")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
