@@ -37,7 +37,14 @@ async def create_booking(booking: BookingRequest):
         created_booking = await booking_model.create_booking(booking_data)
         
         logger.info(f"New booking created: {created_booking['id']} for {created_booking['email']}")
-        
+
+        # Notify Fiona via SMS
+        try:
+            from app.utils.sms import notify_new_booking
+            notify_new_booking(created_booking)
+        except Exception as sms_error:
+            logger.warning(f"SMS notification failed: {str(sms_error)}")
+
         return BookingResponse(**created_booking)
         
     except Exception as e:
@@ -129,6 +136,13 @@ async def update_booking_status(booking_id: str, status_update: BookingStatusUpd
                     logger.warning(f"Failed to send confirmation email to {updated_booking['email']}")
             except Exception as email_error:
                 logger.error(f"Error sending confirmation email: {str(email_error)}")
+
+            # Add event to Google Calendar
+            try:
+                from app.utils.google_calendar import create_booking_event
+                create_booking_event(updated_booking)
+            except Exception as cal_error:
+                logger.warning(f"Google Calendar event failed: {str(cal_error)}")
                 # Don't fail the request if email fails
         
         # Send cancellation email if status changed to cancelled

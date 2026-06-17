@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { contactInfo, faqData } from '../data/mock';
 import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-react';
+
+const TikTokIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.19 8.19 0 0 0 4.79 1.54V6.77a4.85 4.85 0 0 1-1.02-.08z"/>
+  </svg>
+);
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
@@ -12,9 +18,8 @@ import {
   AccordionTrigger,
 } from './ui/accordion';
 import { toast } from 'sonner';
-import axios from 'axios';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const FORMSPREE_ID = process.env.REACT_APP_FORMSPREE_ID;
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -39,26 +44,28 @@ const Contact = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    try {
-      // Submit to backend API
-      const response = await axios.post(
-        `${BACKEND_URL}/api/bookings`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      );
 
-      console.log('Booking created:', response.data);
-      
+    if (!FORMSPREE_ID) {
+      toast.error("Form not configured", {
+        description: "Set REACT_APP_FORMSPREE_ID in your .env file.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) throw new Error('Submission failed');
+
       toast.success("Booking Request Received!", {
         description: "I'll get back to you within 24-48 hours to confirm your consultation.",
       });
 
-      // Reset form
       setFormData({
         name: '',
         email: '',
@@ -68,14 +75,9 @@ const Contact = () => {
         bodyPlacement: '',
         size: '',
       });
-      
     } catch (error) {
-      console.error('Error submitting booking:', error);
-      
-      const errorMessage = error.response?.data?.detail || 'Something went wrong. Please try again.';
-      
       toast.error("Booking Failed", {
-        description: errorMessage,
+        description: "Something went wrong. Please try again or DM on Instagram.",
       });
     } finally {
       setIsSubmitting(false);
@@ -250,13 +252,22 @@ const Contact = () => {
                   >
                     <Instagram size={24} />
                   </a>
-                  <a 
+                  <a
                     href={`https://facebook.com/${contactInfo.socialMedia.facebook}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-12 h-12 bg-electric-cyan/20 hover:bg-electric-cyan/30 border border-electric-cyan/50 rounded-lg flex items-center justify-center text-electric-cyan hover:text-white transition-all"
                   >
                     <Facebook size={24} />
+                  </a>
+                  <a
+                    href="https://tiktok.com/@fiona.joilet"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-12 h-12 bg-electric-pink/20 hover:bg-electric-pink/30 border border-electric-pink/50 rounded-lg flex items-center justify-center text-electric-pink hover:text-white transition-all"
+                    aria-label="TikTok"
+                  >
+                    <TikTokIcon size={24} />
                   </a>
                 </div>
               </div>

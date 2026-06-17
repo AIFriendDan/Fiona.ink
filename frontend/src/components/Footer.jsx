@@ -2,6 +2,12 @@ import React from 'react';
 import { Instagram, Facebook, Mail, Heart } from 'lucide-react';
 import { contactInfo } from '../data/mock';
 
+const TikTokIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.19 8.19 0 0 0 4.79 1.54V6.77a4.85 4.85 0 0 1-1.02-.08z"/>
+  </svg>
+);
+
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -27,7 +33,7 @@ const Footer = () => {
               >
                 <Instagram size={20} />
               </a>
-              <a 
+              <a
                 href={`https://facebook.com/${contactInfo.socialMedia.facebook}`}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -36,7 +42,16 @@ const Footer = () => {
               >
                 <Facebook size={20} />
               </a>
-              <a 
+              <a
+                href="https://tiktok.com/@fiona.joilet"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 bg-electric-pink/20 hover:bg-electric-pink/30 border border-electric-pink/50 rounded-lg flex items-center justify-center text-electric-pink hover:text-white transition-all"
+                aria-label="TikTok"
+              >
+                <TikTokIcon size={20} />
+              </a>
+              <a
                 href={`mailto:${contactInfo.email}`}
                 className="w-10 h-10 bg-neon-green/20 hover:bg-neon-green/30 border border-neon-green/50 rounded-lg flex items-center justify-center text-neon-green hover:text-white transition-all"
                 aria-label="Email"

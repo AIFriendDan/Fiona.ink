@@ -12,6 +12,7 @@ import Footer from './components/Footer';
 import AdminLogin from './components/AdminLogin';
 import AdminDashboard from './components/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import FloatingMusicPlayer from './components/FloatingMusicPlayer';
 import { Toaster } from './components/ui/sonner';
 import './App.css';
 
@@ -44,6 +45,7 @@ function App() {
             }
           />
         </Routes>
+        <FloatingMusicPlayer />
         <Toaster />
       </div>
     </AuthProvider>
