@@ -40,6 +40,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchBookings();
     fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus]);
 
   const fetchBookings = async () => {
