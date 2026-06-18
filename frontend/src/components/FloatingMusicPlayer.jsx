@@ -8,7 +8,7 @@ import { Music, X, Volume2 } from 'lucide-react';
 const TRACK_ID = process.env.REACT_APP_SPOTIFY_TRACK_ID || '';
 
 const FloatingMusicPlayer = () => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
