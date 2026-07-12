@@ -2,17 +2,11 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Optional
 from app.schemas.booking import BookingRequest, BookingResponse, BookingStatusUpdate
 from app.models.booking import BookingModel
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+from app.database import get_pool
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'tattoo_studio')]
 
 @router.post("/bookings", response_model=BookingResponse, status_code=201)
 async def create_booking(booking: BookingRequest):
@@ -28,7 +22,7 @@ async def create_booking(booking: BookingRequest):
     - **size**: Approximate size of the tattoo (optional)
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         
         # Convert Pydantic model to dict
         booking_data = booking.model_dump(by_alias=True)
@@ -65,7 +59,7 @@ async def get_bookings(
     - **skip**: Number of results to skip for pagination (default: 0)
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         bookings = await booking_model.get_all_bookings(status=status, limit=limit, skip=skip)
         
         return [BookingResponse(**booking) for booking in bookings]
@@ -80,7 +74,7 @@ async def get_booking(booking_id: str):
     Get a specific booking by ID
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         booking = await booking_model.get_booking_by_id(booking_id)
         
         if not booking:
@@ -102,7 +96,7 @@ async def update_booking_status(booking_id: str, status_update: BookingStatusUpd
     - **status**: New status (pending, confirmed, completed, cancelled)
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         
         # Check if booking exists
         booking = await booking_model.get_booking_by_id(booking_id)
@@ -179,7 +173,7 @@ async def delete_booking(booking_id: str):
     Delete a booking by ID
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         
         # Check if booking exists
         booking = await booking_model.get_booking_by_id(booking_id)
@@ -208,7 +202,7 @@ async def get_booking_stats():
     Get booking statistics
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         
         total = await booking_model.get_bookings_count()
         pending = await booking_model.get_bookings_count(status="pending")
@@ -234,7 +228,7 @@ async def send_reminder(booking_id: str):
     Send appointment reminder email for a specific booking
     """
     try:
-        booking_model = BookingModel(db)
+        booking_model = BookingModel(get_pool())
         
         # Check if booking exists
         booking = await booking_model.get_booking_by_id(booking_id)

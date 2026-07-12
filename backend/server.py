@@ -1,7 +1,6 @@
 from fastapi import FastAPI, APIRouter
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
@@ -10,14 +9,10 @@ from typing import List
 import uuid
 from datetime import datetime, timezone
 
+from app.database import connect as connect_db, disconnect as disconnect_db, get_pool
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
-
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
 
 # Create the main app without a prefix
 app = FastAPI(
@@ -50,25 +45,19 @@ async def root():
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()
     status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
+
+    await get_pool().execute(
+        "INSERT INTO status_checks (id, client_name, timestamp) VALUES ($1, $2, $3)",
+        status_obj.id, status_obj.client_name, status_obj.timestamp
+    )
     return status_obj
 
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+    rows = await get_pool().fetch(
+        "SELECT id, client_name, timestamp FROM status_checks ORDER BY timestamp DESC LIMIT 1000"
+    )
+    return [dict(row) for row in rows]
 
 # Import and include booking router
 from app.routers.bookings import router as bookings_router
@@ -98,54 +87,35 @@ logger = logging.getLogger(__name__)
 async def seed_admin():
     """Seed admin user on startup"""
     from app.utils.auth import hash_password, verify_password
-    
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com")
+
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@example.com").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
-    
-    existing = await db.users.find_one({"email": admin_email})
-    
+
+    pool = get_pool()
+    existing = await pool.fetchrow("SELECT * FROM users WHERE email = $1", admin_email)
+
     if existing is None:
         hashed = hash_password(admin_password)
-        await db.users.insert_one({
-            "email": admin_email,
-            "password_hash": hashed,
-            "name": "Admin",
-            "role": "admin",
-            "created_at": datetime.now(timezone.utc)
-        })
+        await pool.execute(
+            "INSERT INTO users (id, email, password_hash, name, role, created_at) VALUES ($1, $2, $3, 'Admin', 'admin', $4)",
+            str(uuid.uuid4()), admin_email, hashed, datetime.now(timezone.utc)
+        )
         logger.info(f"Admin user created: {admin_email}")
     elif not verify_password(admin_password, existing["password_hash"]):
         hashed = hash_password(admin_password)
-        await db.users.update_one(
-            {"email": admin_email},
-            {"$set": {"password_hash": hashed}}
+        await pool.execute(
+            "UPDATE users SET password_hash = $1 WHERE email = $2",
+            hashed, admin_email
         )
         logger.info(f"Admin password updated for: {admin_email}")
-    
-    # Write credentials to test_credentials.md
-    try:
-        with open("/app/memory/test_credentials.md", "w") as f:
-            f.write("# Test Credentials for Fiona.Ink Website\n\n")
-            f.write("## Admin User\n")
-            f.write(f"- Email: {admin_email}\n")
-            f.write(f"- Password: {admin_password}\n")
-            f.write("- Role: admin\n\n")
-            f.write("## Auth Endpoints\n")
-            f.write("- POST /api/auth/login\n")
-            f.write("- POST /api/auth/logout\n")
-            f.write("- GET /api/auth/me\n")
-            f.write("- POST /api/auth/refresh\n")
-    except Exception as e:
-        logger.error(f"Error writing test credentials: {str(e)}")
 
 @app.on_event("startup")
 async def startup_event():
     """Run startup tasks"""
+    await connect_db()
+    logger.info("Database connected and schema ensured")
     await seed_admin()
-    # Create indexes
-    await db.users.create_index("email", unique=True)
-    logger.info("Database indexes created")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    client.close()
+    await disconnect_db()

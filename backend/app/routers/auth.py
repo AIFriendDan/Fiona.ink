@@ -1,20 +1,12 @@
 from fastapi import APIRouter, HTTPException, Response, Request, Depends
-from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.schemas.auth import LoginRequest, UserResponse
 from app.utils.auth import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
-from bson import ObjectId
-import os
+from app.database import get_pool
 import logging
 import jwt
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-# MongoDB connection
-from motor.motor_asyncio import AsyncIOMotorClient
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ.get('DB_NAME', 'tattoo_studio')]
 
 async def get_current_user(request: Request) -> dict:
     """Dependency to get current authenticated user"""
@@ -34,14 +26,14 @@ async def get_current_user(request: Request) -> dict:
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
         
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        
-        if not user:
+        row = await get_pool().fetchrow("SELECT * FROM users WHERE id = $1", payload["sub"])
+
+        if not row:
             raise HTTPException(status_code=401, detail="User not found")
-        
-        user["_id"] = str(user["_id"])
+
+        user = dict(row)
         user.pop("password_hash", None)
-        
+
         return user
         
     except jwt.ExpiredSignatureError:
@@ -65,17 +57,19 @@ async def login(credentials: LoginRequest, response: Response):
         email = credentials.email.lower()
         
         # Find user by email
-        user = await db.users.find_one({"email": email})
-        
-        if not user:
+        row = await get_pool().fetchrow("SELECT * FROM users WHERE email = $1", email)
+
+        if not row:
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        
+
+        user = dict(row)
+
         # Verify password
         if not verify_password(credentials.password, user["password_hash"]):
             raise HTTPException(status_code=401, detail="Invalid email or password")
-        
+
         # Create tokens
-        user_id = str(user["_id"])
+        user_id = user["id"]
         access_token = create_access_token(user_id, user["email"])
         refresh_token = create_refresh_token(user_id)
         
@@ -151,14 +145,14 @@ async def refresh_access_token(request: Request, response: Response):
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
         
-        user = await db.users.find_one({"_id": ObjectId(payload["sub"])})
-        
-        if not user:
+        row = await get_pool().fetchrow("SELECT * FROM users WHERE id = $1", payload["sub"])
+
+        if not row:
             raise HTTPException(status_code=401, detail="User not found")
-        
+
         # Create new access token
-        user_id = str(user["_id"])
-        new_access_token = create_access_token(user_id, user["email"])
+        user_id = row["id"]
+        new_access_token = create_access_token(user_id, row["email"])
         
         # Set new access token cookie
         response.set_cookie(
