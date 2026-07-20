@@ -153,6 +153,7 @@ const Contact = () => {
                     value={formData.preferredDate}
                     onChange={handleChange}
                     className="bg-black/50 border-gray-700 text-white focus:border-electric-cyan"
+                    style={{ colorScheme: 'dark' }}
                   />
                 </div>
               </div>
