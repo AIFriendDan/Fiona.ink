@@ -23,4 +23,4 @@ services:
       - key: ADMIN_PASSWORD     # rotate after go-live
         sync: false
       - key: CORS_ORIGINS       # explicit origins because server.py sets allow_credentials=True (a wildcard "*" + credentials is rejected by browsers and would break admin login)
-        value: "https://fiona.ink,https://www.fiona.ink"
+        value: "https://fionatats.ink,https://www.fionatats.ink"
