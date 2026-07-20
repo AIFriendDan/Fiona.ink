@@ -1,0 +1,26 @@
+# Render Blueprint for the Fiona.ink FastAPI backend.
+# Deploy: Render dashboard -> New -> Blueprint -> select the AIFriendDan/Fiona.ink repo.
+# Render reads this file and creates the service with the correct Python config.
+# The three `sync: false` vars must be filled in the dashboard on first deploy
+# (Render prompts for them) — they are intentionally NOT stored in git.
+services:
+  - type: web
+    name: fiona-ink-backend
+    runtime: python
+    plan: free            # bump to "starter" once a card is on file (keeps it always-on; free spins down after ~15 min idle)
+    rootDir: backend
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/
+    envVars:
+      - key: PYTHON_VERSION     # pinned after the 7/12 deploy failure: unpinned build grabbed 3.14, no prebuilt wheel for grpcio-status==1.71.2
+        value: "3.11.10"
+      - key: DATABASE_URL       # the Neon connection string (from the AIF-30 comment; rotate after go-live)
+        sync: false
+      - key: ADMIN_EMAIL        # admin
+        sync: false
+      - key: ADMIN_PASSWORD     # rotate after go-live
+        sync: false
+      - key: CORS_ORIGINS       # explicit origins because server.py sets allow_credentials=True (a wildcard "*" + credentials is rejected by browsers and would break admin login)
+        value: "https://fiona.ink,https://www.fiona.ink"
