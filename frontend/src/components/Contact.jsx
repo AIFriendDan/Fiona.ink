@@ -19,7 +19,7 @@ import {
 } from './ui/accordion';
 import { toast } from 'sonner';
 
-const FORMSPREE_ID = process.env.REACT_APP_FORMSPREE_ID;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -45,16 +45,16 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    if (!FORMSPREE_ID) {
+    if (!BACKEND_URL) {
       toast.error("Form not configured", {
-        description: "Set REACT_APP_FORMSPREE_ID in your .env file.",
+        description: "Set REACT_APP_BACKEND_URL in your .env file.",
       });
       setIsSubmitting(false);
       return;
     }
 
     try {
-      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+      const res = await fetch(`${BACKEND_URL}/api/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(formData),
