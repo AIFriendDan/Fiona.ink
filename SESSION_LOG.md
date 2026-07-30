@@ -17,7 +17,24 @@
 - None new; used existing Linear, Vercel, and Notion connectors already live in this workspace.
 
 ### Blocked / needs Dan
-- Attach `fionatats.ink` to the `frontend` Vercel project (Settings → Domains) once nameserver propagation finishes.
-- Update backend `CORS_ORIGINS` (in `render.yaml`, currently `https://fiona.ink,https://www.fiona.ink`) to the new domain — not yet pushed.
 - Rename Neon DB `fionas_ass` → something real (original AIF-30 ask, still open).
-- Run a real end-to-end booking test once CORS is updated and domain is live.
+
+## 2026-07-20 (cont.) — domain, real booking test, SMS gap found, expense reminders started
+
+### Decisions
+- `fiona.ink` is owned by a third party, not purchasable — bought `fionatats.ink` instead ($2.99 first-yr promo via Vercel, auto-renew on). Logged to Notion Business Expenses tracker, billable to Fiona per Dan.
+- CORS_ORIGINS updated in render.yaml from `fiona.ink` to `fionatats.ink`/`www.fionatats.ink`, pushed and confirmed live.
+
+### Pivots / discoveries
+- End-to-end booking flow confirmed fully working 2026-07-20: real submission through fionatats.ink → backend → Neon DB, verified via direct API check (not just the success toast).
+- SMS notification to Fiona has never actually fired. `notify_new_booking()` needs `TWILIO_ACCOUNT_SID`/`TWILIO_AUTH_TOKEN`/`TWILIO_FROM_NUMBER`/`FIONA_PHONE_NUMBER` — none are set on Render. They *were* set once (per 2026-07-05 archived notes, Dan added them directly in the Render dashboard), but got wiped when the broken Render services were deleted and rebuilt via Blueprint earlier this session — Blueprint only restores what's explicitly in render.yaml.
+- Existing HCiHY Twilio number (+1 805 765 3711) is the **official manned business/answering-bot line** — confirmed by Dan, do not reuse for Fiona's booking alerts. Needs a **separate, dedicated Twilio number** for Fiona.
+- Site also has fake placeholder content beyond stock photos: testimonials (Alex Chen/Sarah Morrison/Marcus Johnson — none real), fake contact email (`fiona.ink@example.com`), fake phone number. Not yet fixed — needs real photos/testimonials/contact info from Dan or Fiona.
+- No Twilio MCP connector available (registry only has a docs-search Twilio connector, no account/provisioning access) — number purchase + A2P 10DLC registration has to happen manually in Twilio console.
+- Started a separate ask: monthly "safety number" + staggered T-7/T-3/T-1 renewal reminders across all HCiHY/AiFriendDan recurring expenses (domains, Slack Pro, Formspree, Twilio). Most amounts are logged as TBD in the Notion expense tracker — blocked on Dan pulling real renewal prices from card statements/registrar dashboards before this can be built accurately.
+
+### Blocked / needs Dan
+- **Twilio for Fiona**: buy a dedicated number in the Twilio console (separate from the HCiHY answering-bot line), complete A2P 10DLC registration if needed, get Account SID + Auth Token + new number, and get Fiona's real cell number — then these 4 values get set as Render secrets to turn SMS notifications on.
+- **Expense reminder system**: need real renewal $ amounts for `guestplot.com`, `aifrienddan.com`, `hcihytech.com`, `leilanisclassycleaning.com`, and Slack Pro (all currently TBD) before the monthly obligation number and reminder schedule can be built.
+- Rename Neon DB `fionas_ass` → something real (still open, carried over).
+- Real photos, real testimonials, real contact email/phone to replace placeholder content on fionatats.ink.
